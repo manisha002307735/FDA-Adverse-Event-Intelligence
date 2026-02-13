@@ -47,7 +47,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Config
-N8N_WEBHOOK_URL = "http://localhost:5678/webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
+N8N_WEBHOOK_URL = "https://fda-adverse-event-intelligence.onrender.com/webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
 
 # Session state
 if 'results' not in st.session_state:
