@@ -1,0 +1,989 @@
+{
+  "name": "workflow_v2",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        -960
+      ],
+      "id": "9eea7d94-ad6e-4599-82b0-40059aae9aef",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all incoming items from previous nodes\nconst items = $input.all();\n\nreturn items.map(item => {\n  const data = item.json;\n\n  // 1. Remove null or undefined values\n  Object.keys(data).forEach(key => {\n    if (data[key] === null || data[key] === undefined) {\n      delete data[key];\n    }\n  });\n\n  // 2. Standardize text fields\n  if (data.text) {\n    data.text = data.text.trim();\n  }\n\n  if (data.description) {\n    data.description = data.description\n      .trim()\n      .replace(/\\s+/g, ' ');\n  }\n\n  // 3. Add cleaned timestamp\n  data.cleaned_date = new Date().toISOString();\n\n  // Return cleaned item\n  return { json: data };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        -448
+      ],
+      "id": "3ff1cb2d-0cbc-4b86-afd0-f55d57a2bde8",
+      "name": "Code in JavaScript",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "https://datasets-server.huggingface.co/rows",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "dataset",
+              "value": "KevinSpaghetti/cadec"
+            },
+            {
+              "name": "config",
+              "value": "default"
+            },
+            {
+              "name": "split",
+              "value": "train"
+            },
+            {
+              "name": "offset",
+              "value": "0"
+            },
+            {
+              "name": "length",
+              "value": "80"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        96,
+        -736
+      ],
+      "id": "bdf98cac-193e-4361-95d7-0749cebc3ec3",
+      "name": "Agent 1: Clinical Protocol Analyzer"
+    },
+    {
+      "parameters": {
+        "url": "https://www.fda.gov/AboutFDA/ContactFDA/StayInformed/RSSFeeds/MedWatch/rss.xml",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data_xml"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -352,
+        -544
+      ],
+      "id": "f690ef97-8cc1-4741-912f-394a19a28e3e",
+      "name": "Agent 2 (Platform Data Orchestrator)",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "db",
+              "value": "pubmed"
+            },
+            {
+              "name": "id",
+              "value": "39876543,39876542,39876541,39876540,39876539,39876538,39876537,39876536,39876535,39876534,39876533,39876532,39876531,39876530,39876529,38508272,38508271,38508270,38508269,38508268,38508267,38508266,38508265,38508264,38508263,38508262,38508261,38508260,38508259,38508258"
+            },
+            {
+              "name": "retmode",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        96,
+        -352
+      ],
+      "id": "2097a092-ae46-4a31-b2ae-c6efc2daf2c6",
+      "name": "Agent 3 (Trial Performance Intelligence)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const collectedAt = new Date().toISOString();\n\n// Hugging Face /rows response shape:\n// { rows: [ { row: { text, ade, term_PT, ... }, ... }, ... ] }\n\nconst rows = items?.[0]?.json?.rows || [];\nconst out = [];\n\nfor (let i = 0; i < rows.length; i++) {\n  const r = rows[i]?.row || {};\n\n  const text = (r.text ?? \"\").toString().trim();\n  const ade = (r.ade ?? \"\").toString().trim();\n  const termPT = (r.term_PT ?? \"\").toString().trim();\n\n  // Basic quality filter\n  if (!text) continue;\n\n  out.push({\n    json: {\n      record_id: `CADEC-${i + 1}`,\n      source: \"cadec_huggingface\",\n      event_term: termPT || ade || \"unknown\",\n      meddra_code: null,\n      severity: \"unknown\",\n      patient_age: null,\n      sex: null,\n      drug_name: null,\n      indication: null,\n      raw_text: text,\n      event_date: null,\n      url: \"https://huggingface.co/datasets/KevinSpaghetti/cadec\",\n      collected_at: collectedAt,\n\n      // Optional: keep original fields (helps debugging + documentation)\n      cadec_ade: ade || null,\n      cadec_term_pt: termPT || null\n    }\n  });\n}\n\n// Keep your record count clean (optional cap)\nreturn out.slice(0, 80);\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -736
+      ],
+      "id": "d7a6925e-4312-4ba0-876b-641a38540566",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "dataPropertyName": "data_xml",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        -544
+      ],
+      "id": "41fa24f2-fb07-4647-9c69-30b2d79d3ac5",
+      "name": "XML"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "rss.channel.item",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        96,
+        -544
+      ],
+      "id": "bbfa165b-06ea-45bd-bfc9-5f4b420d3447",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "operation": "toJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2688,
+        -16
+      ],
+      "id": "4aad52a3-be05-4a96-b217-6820dc3d0183",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        544,
+        -464
+      ],
+      "id": "7c10afeb-d28a-4279-80d2-89bd26753662",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Analyze this adverse drug reaction report and provide a structured assessment:\n\nREPORT TEXT:\n{{$json.raw_text}}\n\nPATIENT INFO:\n- Drug: {{$json.drug_name}}\n- Event: {{$json.event_term}}\n\nPlease provide:\n1. SEVERITY_SCORE (1-5, where 5 is life-threatening)\n2. MEDICAL_CATEGORY (cardiac/neurological/dermatological/gastrointestinal/respiratory/other)\n3. URGENCY_LEVEL (immediate/urgent/monitor/routine)\n4. RECOMMENDED_ACTION (specific next steps)\n5. CONFIDENCE_LEVEL (high/medium/low)\n\nReturn as JSON format."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 500,
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          },
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        1216,
+        -448
+      ],
+      "id": "ed0d15a9-1316-405c-a93a-99292b9b73af",
+      "name": "Message a model",
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "nCE5Tu82t1haD4oN",
+          "name": "OpenAi account 3"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.ai_severity_score}}",
+                    "rightValue": 4,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "id": "4065a19d-dd90-4390-bc07-372ce5d998a9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "\"Critical\""
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "2b55badf-03eb-4b53-baf7-f278f7d48c4e",
+                    "leftValue": "={{$json.ai_urgency}}",
+                    "rightValue": "=urgent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "\"Urgent\""
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "cd953a2d-e524-414d-a36c-94745347456e",
+                    "leftValue": "={{$json.ai_urgency}}",
+                    "rightValue": "monitor",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "\"Monitor\""
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "66aa0033-f2f3-4a19-8c16-e760ec6e3b26",
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "\"Routine\""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2240,
+        -272
+      ],
+      "id": "b65923bf-02a8-4301-9f24-e4c11bb7d717",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/1469500587052630190/9EjlKboKV19mylgCtOt-0og7WtxfXhy8nRo0DIiEIGG6xw0SeceOiunjJj5wVVgOUuDN",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"🚨 CRITICAL ADVERSE EVENT\\n\\nSeverity: {{ $json.ai_severity_score }}/5\\nCategory: {{ $json.ai_category }}\\n\\nAction: {{ $json.ai_action }}\\n\\nConfidence: {{ $json.ai_confidence }}\\n\\n⚡ IMMEDIATE REVIEW REQUIRED\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2688,
+        -520
+      ],
+      "id": "23571723-1486-44ed-a901-8e807e9582e0",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/1469500587052630190/9EjlKboKV19mylgCtOt-0og7WtxfXhy8nRo0DIiEIGG6xw0SeceOiunjJj5wVVgOUuDN",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2688,
+        -208
+      ],
+      "id": "e97358e8-ec21-4b95-8f15-48a26a1131d3",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced AI analysis - PRESERVE ALL ORIGINAL FIELDS + ENRICH\nconst items = $input.all();\nconst originalItems = $('Code in JavaScript').all();\n\nconsole.log(`Processing ${items.length} items for enrichment`);\nconsole.log(`Original items available: ${originalItems.length}`);\n\nreturn items.map((item, index) => {\n  const data = item.json;\n  \n  // ✅ GET ORIGINAL DATA from \"Code in JavaScript\" node (before AI)\n  const originalData = originalItems[index]?.json || {};\n  \n  // Parse AI response\n  let aiAnalysis = {};\n  try {\n    if (data.output && data.output[0] && data.output[0].content && data.output[0].content[0]) {\n      const textContent = data.output[0].content[0].text;\n      aiAnalysis = {\n        severity_score: textContent.SEVERITY_SCORE || 0,\n        medical_category: textContent.MEDICAL_CATEGORY || \"unknown\",\n        urgency_level: textContent.URGENCY_LEVEL || \"routine\",\n        recommended_action: textContent.RECOMMENDED_ACTION || \"Review manually\",\n        confidence_level: textContent.CONFIDENCE_LEVEL || \"low\"\n      };\n    } else {\n      aiAnalysis = {\n        severity_score: 0,\n        medical_category: \"unknown\",\n        urgency_level: \"routine\",\n        recommended_action: \"Review manually - AI parse failed\",\n        confidence_level: \"low\"\n      };\n    }\n  } catch (e) {\n    aiAnalysis = {\n      severity_score: 0,\n      medical_category: \"unknown\",\n      urgency_level: \"routine\",\n      recommended_action: \"Review manually - error\",\n      confidence_level: \"low\"\n    };\n  }\n  \n  // Detect source\n  const source = originalData.source || 'unknown';\n  \n  // ✅ ADD ENRICHMENT based on source\n  let sourceType = '';\n  let sourceSummary = '';\n  let description = '';\n  \n  if (source.includes('cadec')) {\n    sourceType = 'Patient Report';\n    sourceSummary = `Patient-reported: ${originalData.event_term || 'symptoms'}`;\n    description = `Patient reported ${originalData.event_term || 'adverse event'}: ${originalData.raw_text?.substring(0, 150) || ''}`;\n  } else if (source === 'pubmed') {\n    sourceType = 'Research Literature';\n    sourceSummary = `Research: ${originalData.pubmed_title?.substring(0, 80) || 'Article'}`;\n    description = `${originalData.pubmed_title || 'Research article'}. Journal: ${originalData.pubmed_journal || 'Unknown'}. Authors: ${originalData.pubmed_authors || 'Not listed'}.`;\n  } else if (source.includes('fda') || source.includes('medwatch')) {\n    sourceType = 'FDA Regulatory Alert';\n    sourceSummary = `FDA Safety Alert: ${originalData.fda_alert_title?.substring(0, 80) || 'Alert'}`;\n    description = `FDA: ${originalData.fda_alert_title || 'Safety alert'}`;\n  }\n  \n  // ✅ MERGE: Keep ALL original fields + add AI analysis + add enrichment\n  const enrichedData = {\n    ...originalData,  // ✅ All original fields\n    \n    // Add enrichment\n    source_type: sourceType,\n    source_summary: sourceSummary,\n    description: description,\n    \n    // Add source-specific fields\n    cadec_patient_description: source.includes('cadec') ? originalData.raw_text : undefined,\n    cadec_event: source.includes('cadec') ? originalData.event_term : undefined,\n    \n    // Add AI Analysis\n    ai_severity_score: aiAnalysis.severity_score,\n    ai_category: aiAnalysis.medical_category,\n    ai_urgency: aiAnalysis.urgency_level,\n    ai_action: aiAnalysis.recommended_action,\n    ai_confidence: aiAnalysis.confidence_level,\n    ai_processed_at: new Date().toISOString()\n  };\n  \n  // Remove undefined values\n  Object.keys(enrichedData).forEach(key => {\n    if (enrichedData[key] === undefined) {\n      delete enrichedData[key];\n    }\n  });\n  \n  if (index === 0) {\n    console.log('✅ Sample enriched output:', JSON.stringify({\n      record_id: enrichedData.record_id,\n      source: enrichedData.source,\n      source_type: enrichedData.source_type,\n      pubmed_title: enrichedData.pubmed_title,\n      ai_severity_score: enrichedData.ai_severity_score\n    }, null, 2));\n  }\n  \n  return { json: enrichedData };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        -352
+      ],
+      "id": "dfabe68a-d398-4a34-9257-98970a2b6b9b",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2464,
+        -16
+      ],
+      "id": "9203f806-fb07-4207-8d6e-c0c40ad2f413",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all urgent items\nconst items = $input.all();\n\nif (items.length === 0) {\n  return [{\n    json: {\n      content: \"✅ No urgent cases detected.\"\n    }\n  }];\n}\n\n// Build compact summary message\nlet msg = `🚨 **URGENT ALERTS** (${items.length} total)\\n`;\nmsg += `⏰ ${new Date().toLocaleString()}\\n\\n`;\nmsg += `**Top 5 Critical Cases:**\\n`;\n\n// Get top 5 by severity\nconst top = items\n  .sort((a, b) => (b.json.ai_severity_score || 0) - (a.json.ai_severity_score || 0))\n  .slice(0, 5);\n\n// Format each case\ntop.forEach((item, i) => {\n  const d = item.json;\n  msg += `${i+1}. Severity ${d.ai_severity_score}/5 | ${d.ai_category} | ${d.ai_action}\\n`;\n});\n\nif (items.length > 5) {\n  msg += `\\n+${items.length - 5} more cases require review`;\n}\n\nmsg += `\\n\\n⚡ **REVIEW REQUIRED**`;\n\n// CRITICAL: Return with content field\nreturn [{ \n  json: { \n    content: msg \n  } \n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        -208
+      ],
+      "id": "f9cdd9df-ce62-448e-a868-7ba8d6fc28e8",
+      "name": "Create Discord Summary"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b2f9cff6-a89a-4c2e-b962-c921323ab22c",
+              "leftValue": "={{ $json.error_detected }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1792,
+        -448
+      ],
+      "id": "385066ba-5b14-4031-889f-2b24d7f0b1ad",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/1469500587052630190/9EjlKboKV19mylgCtOt-0og7WtxfXhy8nRo0DIiEIGG6xw0SeceOiunjJj5wVVgOUuDN",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.error }}\nTime: {{ $now.toISO() }}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2016,
+        -544
+      ],
+      "id": "f17286c5-bf52-4847-8854-a04387274cf5",
+      "name": "Send Error Alert to Discord",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fromEmail": "manishasahu2055@gmail.com",
+        "toEmail": "manishasahu2055@gmail.com",
+        "subject": "=FDA Adverse Event Report - {{ $now.format('-MM-DD HH:mm') }}",
+        "emailFormat": "text",
+        "options": {
+          "attachments": "data"
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2912,
+        -16
+      ],
+      "id": "457ec505-674b-4cdc-bf0f-1dcb65387984",
+      "name": "Send email",
+      "webhookId": "6c426765-44a9-4f9f-bebb-886ad036217b",
+      "credentials": {
+        "smtp": {
+          "id": "LXDpUK9CYGnonZy3",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2464,
+        -448
+      ],
+      "id": "148fa99f-dcff-468f-b14f-23626958545d",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2912,
+        -448
+      ],
+      "id": "60543b2e-3166-45ff-80b5-37d590256623",
+      "name": "Wait",
+      "webhookId": "8fcd72c6-c110-46a0-99b5-dae85f77aeea"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const data = item.json;\n  \n  // Check if we have VALID AI output\n  const hasValidOutput = !!(\n    data.output && \n    data.output[0] && \n    data.output[0].content && \n    data.output[0].content[0] &&\n    data.output[0].content[0].text\n  );\n  \n  const hasError = !hasValidOutput;\n  \n  console.log('Error Detector:', {\n    hasValidOutput,\n    hasError,\n    hasOutput: !!data.output\n  });\n  \n  return {\n    json: {\n      ...data,\n      error_detected: hasError,\n      // Debug fields\n      debug_hasValidOutput: hasValidOutput,\n      debug_hasError: hasError\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -448
+      ],
+      "id": "ddf50493-fba4-45e2-b377-ac0bee71be79",
+      "name": "Error Detector"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c4e3e139-affc-40e5-a550-11c1b30540fe",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -576,
+        -544
+      ],
+      "id": "dc7baaad-92f6-4904-b6fb-e158768e9445",
+      "name": "Webhook",
+      "webhookId": "c4e3e139-affc-40e5-a550-11c1b30540fe"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dynamic limiting with SHUFFLE to mix all sources\nconst webhookData = $('Webhook').first().json.body || $('Webhook').first().json;\nconst requestedCount = parseInt(webhookData.record_count) || 10;\n\nconsole.log('Requested:', requestedCount, 'records');\n\n// Get all items from previous node\nconst allItems = $input.all();\n\nconsole.log('Total items available:', allItems.length);\n\n// ✅ SHUFFLE to mix CADEC, FDA, and PubMed records\nconst shuffled = allItems.sort(() => Math.random() - 0.5);\n\n// Return only requested number from shuffled array\nconst limitedItems = shuffled.slice(0, requestedCount);\n\n// Count by source\nconst sources = {};\nlimitedItems.forEach(item => {\n  const source = item.json.source || 'unknown';\n  sources[source] = (sources[source] || 0) + 1;\n});\n\nconsole.log('Returning:', limitedItems.length, 'records');\nconsole.log('Source distribution:', JSON.stringify(sources));\n\nreturn limitedItems;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        -448
+      ],
+      "id": "9dc60713-ae25-4932-a9ae-1fecba919ad1",
+      "name": "Dynamic Limit Based on Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse PubMed summary response to get actual article data\nconst response = items[0].json;\nconst result = response.result || {};\nconst out = [];\n\n// Get all article UIDs\nconst uids = result.uids || [];\n\nconsole.log(`Processing ${uids.length} PubMed articles`);\n\n// Process each article\nuids.forEach(uid => {\n  const article = result[uid];\n  \n  if (article && article.title) {\n    // Extract author names with proper handling\n    const authors = article.authors || [];\n    const authorNames = authors\n      .slice(0, 3)\n      .map(a => a.name)\n      .join(', ');\n    \n    const moreAuthors = authors.length > 3 ? ` +${authors.length - 3} more` : '';\n    const fullAuthors = authorNames + moreAuthors;\n    \n    // Build comprehensive raw_text\n    const rawText = `${article.title}. Published in ${article.fulljournalname || article.source || 'Unknown Journal'} (${article.pubdate || 'Date unknown'}). Authors: ${fullAuthors || 'Not specified'}.`;\n    \n    out.push({\n      json: {\n        record_id: `PUBMED-${uid}`,\n        source: 'pubmed',  // ✅ CRITICAL: Must be exactly 'pubmed'\n        event_term: article.title,  // Use title as event\n        meddra_code: null,\n        severity: 'unknown',\n        patient_age: null,\n        sex: null,\n        drug_name: null,\n        indication: null,\n        raw_text: rawText,\n        event_date: article.pubdate || null,\n        url: `https://pubmed.ncbi.nlm.nih.gov/${uid}/`,\n        collected_at: new Date().toISOString(),\n        \n        // ✅ PubMed-specific enrichment (REQUIRED for Streamlit display)\n        pubmed_id: uid,\n        pubmed_title: article.title,\n        pubmed_journal: article.fulljournalname || article.source || 'Unknown Journal',\n        pubmed_date: article.pubdate || null,\n        pubmed_authors: fullAuthors || 'Not specified',\n        pubmed_doi: article.elocationid || null,\n        pubmed_pmcid: article.pmcid || null\n      }\n    });\n  }\n});\n\nconsole.log(`✅ Successfully parsed ${out.length} PubMed articles with full metadata`);\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -352
+      ],
+      "id": "a3ebc12f-e786-41a5-bc7a-aab5e2b65041",
+      "name": "Parse PubMed Summaries"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare complete response for Streamlit with proper IDs and full PubMed data\nconst allRecords = $input.all();\n\n// Shuffle records to mix sources\nconst shuffled = allRecords.sort(() => Math.random() - 0.5);\n\n// Build response object\nconst response = {\n  success: true,\n  total_records: shuffled.length,\n  records: shuffled.map((item, index) => {\n    const d = item.json;\n    \n    // Generate proper record ID\n    let recordId = d.record_id || d.id || `RECORD-${index + 1}`;\n    \n    // If still generic, try to make it source-specific\n    if (recordId === 'unknown' || !recordId) {\n      const source = d.source || 'UNKNOWN';\n      if (source.includes('cadec')) {\n        recordId = `CADEC-${index + 1}`;\n      } else if (source.includes('fda') || source.includes('medwatch')) {\n        recordId = `FDA-${index + 1}`;\n      } else if (source.includes('pubmed') || source === 'pubmed') {\n        recordId = d.pubmed_id ? `PUBMED-${d.pubmed_id}` : `PUBMED-${index + 1}`;\n      } else {\n        recordId = `REC-${index + 1}`;\n      }\n    }\n    \n    return {\n      record_id: recordId,\n      source: d.source || 'unknown',\n      source_type: d.source_type || null,\n      source_summary: d.source_summary || null,\n      event_term: d.event_term || 'unknown',\n      description: d.description || null,\n      raw_text: d.raw_text || '',\n      \n      // AI Analysis\n      ai_severity_score: d.ai_severity_score || 0,\n      ai_category: d.ai_category || 'unknown',\n      ai_urgency: d.ai_urgency || 'routine',\n      ai_action: d.ai_action || 'No action specified',\n      ai_confidence: d.ai_confidence || 'low',\n      \n      // ✅ CRITICAL: Preserve ALL PubMed fields\n      pubmed_id: d.pubmed_id || null,\n      pubmed_title: d.pubmed_title || null,\n      pubmed_journal: d.pubmed_journal || null,\n      pubmed_authors: d.pubmed_authors || null,\n      pubmed_date: d.pubmed_date || null,\n      pubmed_doi: d.pubmed_doi || null,\n      \n      // CADEC fields\n      cadec_patient_description: d.cadec_patient_description || null,\n      cadec_event: d.cadec_event || null,\n      \n      // FDA fields\n      fda_alert_title: d.fda_alert_title || null,\n      fda_alert_link: d.fda_alert_link || null,\n      \n      // Metadata\n      url: d.url || null,\n      collected_at: d.collected_at || null\n    };\n  }),\n  summary: {\n    total: shuffled.length,\n    by_source: {\n      cadec: shuffled.filter(r => (r.json.source || '').includes('cadec')).length,\n      fda: shuffled.filter(r => (r.json.source || '').includes('fda') || (r.json.source || '').includes('medwatch')).length,\n      pubmed: shuffled.filter(r => r.json.source === 'pubmed').length\n    },\n    by_severity: {\n      critical: shuffled.filter(r => (r.json.ai_severity_score || 0) >= 4).length,\n      moderate: shuffled.filter(r => (r.json.ai_severity_score || 0) === 3).length,\n      mild: shuffled.filter(r => (r.json.ai_severity_score || 0) <= 2).length\n    }\n  },\n  outputs: {\n    discord_critical_sent: shuffled.filter(r => (r.json.ai_severity_score || 0) >= 4).length,\n    discord_urgent_sent: shuffled.filter(r => ['urgent', 'immediate'].includes(r.json.ai_urgency)).length > 0,\n    email_sent: true,\n    email_recipient: \"manishasahu2055@gmail.com\"\n  },\n  metadata: {\n    processed_at: new Date().toISOString()\n  }\n};\n\nconsole.log(`✅ Prepared ${response.records.length} records for Streamlit`);\nconsole.log(`📊 Sources: CADEC=${response.summary.by_source.cadec}, FDA=${response.summary.by_source.fda}, PubMed=${response.summary.by_source.pubmed}`);\nconsole.log(`📄 PubMed records with titles: ${response.records.filter(r => r.pubmed_title).length}`);\n\nreturn [{ json: response }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        -640
+      ],
+      "id": "d3ff16c0-625d-4b61-b7a3-1457b923911c",
+      "name": "Prepare Streamlit Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2464,
+        -640
+      ],
+      "id": "8f21c95f-e0a0-40c1-881f-7aa49a5a20cb",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format FDA RSS items into proper records - Clean, professional values\nconst items = $input.all();\n\nconsole.log(`Formatting ${items.length} FDA items`);\n\nreturn items.map((item, index) => {\n  const data = item.json;\n  \n  // FDA RSS data comes in as flattened structure\n  // Extract the actual RSS item data\n  const rssItem = data['rss.channel.item'] || data;\n  \n  const title = rssItem.title || data.title || 'FDA Medical Device Safety Alert';\n  const link = rssItem.link || data.link || 'https://www.fda.gov/';\n  const description = rssItem.description || data.description || 'Medical device safety communication from FDA';\n  const pubDate = rssItem.pubDate || data.pubDate || new Date().toISOString();\n  \n  return {\n    json: {\n      record_id: `FDA-${String(index + 1).padStart(4, '0')}`,\n      source: 'fda_medwatch',\n      event_term: title,\n      raw_text: `${title}. ${description}`,\n      event_date: pubDate,\n      url: link,\n      collected_at: new Date().toISOString(),\n      \n      // FDA-specific fields\n      fda_alert_title: title,\n      fda_alert_link: link,\n      fda_pub_date: pubDate,\n      fda_description: description\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -544
+      ],
+      "id": "d7f51445-4bb6-4cdb-864b-c59c63ccbc5a",
+      "name": "Format FDA Data"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        []
+      ]
+    },
+    "Agent 1: Clinical Protocol Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 2 (Platform Data Orchestrator)": {
+      "main": [
+        [
+          {
+            "node": "XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 3 (Trial Performance Intelligence)": {
+      "main": [
+        [
+          {
+            "node": "Parse PubMed Summaries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "XML": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Format FDA Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Dynamic Limit Based on Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Error Detector",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Discord Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Prepare Streamlit Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Discord Summary": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send Error Alert to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        []
+      ]
+    },
+    "Send Error Alert to Discord": {
+      "main": [
+        []
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Detector": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Agent 1: Clinical Protocol Analyzer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Agent 2 (Platform Data Orchestrator)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Agent 3 (Trial Performance Intelligence)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dynamic Limit Based on Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse PubMed Summaries": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Prepare Streamlit Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Format FDA Data": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "2f8f8da7-f8ed-400e-82ae-385fa5678afb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "34eec4fedaf41d770a66bfd96efb7bfe88c5bb939c12547cf6f971011ff84692"
+  },
+  "id": "2q11eSOXzcIkgkwp",
+  "tags": []
+}
