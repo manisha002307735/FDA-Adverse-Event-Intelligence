@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: fda-n8n-workflow
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: N8N_BASIC_AUTH_ACTIVE
+        value: true
+      - key: N8N_BASIC_AUTH_USER
+        value: admin
+      - key: N8N_BASIC_AUTH_PASSWORD
+        generateValue: true
+      - key: N8N_PORT
+        value: 5678
+      - key: WEBHOOK_URL
+        sync: false
