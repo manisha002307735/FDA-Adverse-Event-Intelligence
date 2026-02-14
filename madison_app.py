@@ -50,7 +50,7 @@ st.markdown("""
 # Config
 # Default URL (can be overridden in UI)
 DEFAULT_N8N_URL = "http://localhost:5678"
-WEBHOOK_PATH = "webhook-test/c4e3e139-affc-40e5-a550-11c1b30540fe"
+WEBHOOK_PATH = "webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
 
 # Session state
 if 'results' not in st.session_state:
