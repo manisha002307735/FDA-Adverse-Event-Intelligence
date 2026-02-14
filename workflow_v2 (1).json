@@ -6,10 +6,10 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -576,
-        -960
+        0,
+        0
       ],
-      "id": "9eea7d94-ad6e-4599-82b0-40059aae9aef",
+      "id": "26dfb1d8-9d0d-411a-b579-17cf041ca9ff",
       "name": "When clicking ‘Execute workflow’"
     },
     {
@@ -19,10 +19,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        992,
-        -448
+        1568,
+        512
       ],
-      "id": "3ff1cb2d-0cbc-4b86-afd0-f55d57a2bde8",
+      "id": "207ba97d-2161-4129-82d8-c7d5cb2539fa",
       "name": "Code in JavaScript",
       "alwaysOutputData": true
     },
@@ -59,10 +59,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        96,
-        -736
+        672,
+        224
       ],
-      "id": "bdf98cac-193e-4361-95d7-0749cebc3ec3",
+      "id": "f3ba08b6-3cad-4071-b872-080998303cc5",
       "name": "Agent 1: Clinical Protocol Analyzer"
     },
     {
@@ -80,10 +80,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -352,
-        -544
+        224,
+        416
       ],
-      "id": "f690ef97-8cc1-4741-912f-394a19a28e3e",
+      "id": "c525c82b-8650-4312-bd30-46f7c77224f6",
       "name": "Agent 2 (Platform Data Orchestrator)",
       "executeOnce": false
     },
@@ -112,10 +112,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        96,
-        -352
+        672,
+        608
       ],
-      "id": "2097a092-ae46-4a31-b2ae-c6efc2daf2c6",
+      "id": "14b0ca38-4518-4f74-af3f-344a99de6c4b",
       "name": "Agent 3 (Trial Performance Intelligence)"
     },
     {
@@ -125,10 +125,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        320,
-        -736
+        896,
+        224
       ],
-      "id": "d7a6925e-4312-4ba0-876b-641a38540566",
+      "id": "5a524997-4691-4365-b550-46aedd175767",
       "name": "Code in JavaScript1"
     },
     {
@@ -139,10 +139,10 @@
       "type": "n8n-nodes-base.xml",
       "typeVersion": 1,
       "position": [
-        -128,
-        -544
+        448,
+        416
       ],
-      "id": "41fa24f2-fb07-4647-9c69-30b2d79d3ac5",
+      "id": "c7ad4717-d111-43ed-8d2a-d8f05c7e3ae6",
       "name": "XML"
     },
     {
@@ -154,10 +154,10 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        96,
-        -544
+        672,
+        416
       ],
-      "id": "bbfa165b-06ea-45bd-bfc9-5f4b420d3447",
+      "id": "1596fb1b-c0a3-4d95-9254-f4cac1199c5d",
       "name": "Split Out"
     },
     {
@@ -168,10 +168,10 @@
       "type": "n8n-nodes-base.convertToFile",
       "typeVersion": 1.1,
       "position": [
-        2688,
-        -16
+        3264,
+        944
       ],
-      "id": "4aad52a3-be05-4a96-b217-6820dc3d0183",
+      "id": "03c223f3-b3c5-4ea1-826d-a5a7b06cc67b",
       "name": "Convert to File"
     },
     {
@@ -181,10 +181,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        544,
-        -464
+        1120,
+        496
       ],
-      "id": "7c10afeb-d28a-4279-80d2-89bd26753662",
+      "id": "728218de-9dbe-49bd-a3e5-e1845d80d758",
       "name": "Merge"
     },
     {
@@ -216,17 +216,17 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.1,
       "position": [
-        1216,
-        -448
+        1792,
+        512
       ],
-      "id": "ed0d15a9-1316-405c-a93a-99292b9b73af",
+      "id": "1cd673e6-2d96-423e-90eb-dfa420e999aa",
       "name": "Message a model",
       "retryOnFail": true,
       "alwaysOutputData": true,
       "credentials": {
         "openAiApi": {
-          "id": "nCE5Tu82t1haD4oN",
-          "name": "OpenAi account 3"
+          "id": "Rk4VRhv0ytHigrw0",
+          "name": "OpenAi account"
         }
       },
       "onError": "continueRegularOutput"
@@ -341,10 +341,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        2240,
-        -272
+        2816,
+        688
       ],
-      "id": "b65923bf-02a8-4301-9f24-e4c11bb7d717",
+      "id": "a3c112da-2d4d-4996-9eb1-22984666c525",
       "name": "Switch"
     },
     {
@@ -359,10 +359,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        2688,
-        -520
+        3264,
+        448
       ],
-      "id": "23571723-1486-44ed-a901-8e807e9582e0",
+      "id": "5d105999-987e-4c10-bcf4-bd64d1c63ab4",
       "name": "HTTP Request"
     },
     {
@@ -383,10 +383,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        2688,
-        -208
+        3264,
+        752
       ],
-      "id": "e97358e8-ec21-4b95-8f15-48a26a1131d3",
+      "id": "934adfd2-affe-42bb-8a21-5872d7077646",
       "name": "HTTP Request1"
     },
     {
@@ -396,10 +396,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2016,
-        -352
+        2592,
+        608
       ],
-      "id": "dfabe68a-d398-4a34-9257-98970a2b6b9b",
+      "id": "505270d1-9ddd-4d5f-824e-613631a3a597",
       "name": "Code in JavaScript2"
     },
     {
@@ -407,10 +407,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        2464,
-        -16
+        3040,
+        944
       ],
-      "id": "9203f806-fb07-4207-8d6e-c0c40ad2f413",
+      "id": "c13fdad4-e021-4f92-a079-4d7f00e7b457",
       "name": "Merge1"
     },
     {
@@ -420,10 +420,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2464,
-        -208
+        3040,
+        752
       ],
-      "id": "f9cdd9df-ce62-448e-a868-7ba8d6fc28e8",
+      "id": "9491dd4c-325e-4d99-bfc5-a37b1d3138b8",
       "name": "Create Discord Summary"
     },
     {
@@ -453,10 +453,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1792,
-        -448
+        2368,
+        512
       ],
-      "id": "385066ba-5b14-4031-889f-2b24d7f0b1ad",
+      "id": "ef722929-13d9-4c39-8739-ebd94b95b42a",
       "name": "If"
     },
     {
@@ -477,10 +477,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        2016,
-        -544
+        2592,
+        416
       ],
-      "id": "f17286c5-bf52-4847-8854-a04387274cf5",
+      "id": "a2ebc6d5-b529-40d7-87fe-479c512ef789",
       "name": "Send Error Alert to Discord",
       "alwaysOutputData": true
     },
@@ -497,15 +497,15 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        2912,
-        -16
+        3488,
+        944
       ],
-      "id": "457ec505-674b-4cdc-bf0f-1dcb65387984",
+      "id": "728c4757-f029-423c-a516-d0ac086e0cb8",
       "name": "Send email",
       "webhookId": "6c426765-44a9-4f9f-bebb-886ad036217b",
       "credentials": {
         "smtp": {
-          "id": "LXDpUK9CYGnonZy3",
+          "id": "IkszwQNrktkunA9q",
           "name": "SMTP account"
         }
       }
@@ -519,10 +519,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        2464,
-        -448
+        3040,
+        512
       ],
-      "id": "148fa99f-dcff-468f-b14f-23626958545d",
+      "id": "bc23ff8c-6570-4318-a373-92c091211cf5",
       "name": "Loop Over Items"
     },
     {
@@ -532,10 +532,10 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        2912,
-        -448
+        3488,
+        512
       ],
-      "id": "60543b2e-3166-45ff-80b5-37d590256623",
+      "id": "ca998b3e-8a23-404a-b6eb-f6ce0db44ce4",
       "name": "Wait",
       "webhookId": "8fcd72c6-c110-46a0-99b5-dae85f77aeea"
     },
@@ -546,26 +546,26 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1568,
-        -448
+        2144,
+        512
       ],
-      "id": "ddf50493-fba4-45e2-b377-ac0bee71be79",
+      "id": "ceba823d-713d-443b-a36e-20594b2544dc",
       "name": "Error Detector"
     },
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "fda",
+        "path": "c4e3e139-affc-40e5-a550-11c1b30540fe",
         "responseMode": "responseNode",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
+      "typeVersion": 2.1,
       "position": [
-        -576,
-        -544
+        0,
+        416
       ],
-      "id": "dc7baaad-92f6-4904-b6fb-e158768e9445",
+      "id": "62d2434a-6039-4a55-a60c-f51797a1335b",
       "name": "Webhook",
       "webhookId": "c4e3e139-affc-40e5-a550-11c1b30540fe"
     },
@@ -576,10 +576,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        768,
-        -448
+        1344,
+        512
       ],
-      "id": "9dc60713-ae25-4932-a9ae-1fecba919ad1",
+      "id": "07b6104f-aecf-4c7e-8c23-7ab164ace01c",
       "name": "Dynamic Limit Based on Webhook"
     },
     {
@@ -589,10 +589,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        320,
-        -352
+        896,
+        608
       ],
-      "id": "a3ebc12f-e786-41a5-bc7a-aab5e2b65041",
+      "id": "5032f4d5-1c49-4613-85f4-70395ba5f13a",
       "name": "Parse PubMed Summaries"
     },
     {
@@ -602,10 +602,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2240,
-        -640
+        2816,
+        320
       ],
-      "id": "d3ff16c0-625d-4b61-b7a3-1457b923911c",
+      "id": "1ae4d51f-bedb-49db-8042-1fcd5c721c23",
       "name": "Prepare Streamlit Response"
     },
     {
@@ -617,10 +617,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2464,
-        -640
+        3040,
+        320
       ],
-      "id": "8f21c95f-e0a0-40c1-881f-7aa49a5a20cb",
+      "id": "a3c5cb36-6320-4d36-ba62-a50242450208",
       "name": "Respond to Webhook"
     },
     {
@@ -630,20 +630,15 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        320,
-        -544
+        896,
+        416
       ],
-      "id": "d7f51445-4bb6-4cdb-864b-c59c63ccbc5a",
+      "id": "c9eba1f0-b8a2-4b0e-b193-9147897422df",
       "name": "Format FDA Data"
     }
   ],
   "pinData": {},
   "connections": {
-    "When clicking ‘Execute workflow’": {
-      "main": [
-        []
-      ]
-    },
     "Agent 1: Clinical Protocol Analyzer": {
       "main": [
         [
@@ -751,8 +746,7 @@
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
     "Switch": {
@@ -843,11 +837,6 @@
         ]
       ]
     },
-    "Send email": {
-      "main": [
-        []
-      ]
-    },
     "HTTP Request": {
       "main": [
         [
@@ -857,16 +846,6 @@
             "index": 0
           }
         ]
-      ]
-    },
-    "HTTP Request1": {
-      "main": [
-        []
-      ]
-    },
-    "Send Error Alert to Discord": {
-      "main": [
-        []
       ]
     },
     "Loop Over Items": {
@@ -957,11 +936,6 @@
         ]
       ]
     },
-    "Respond to Webhook": {
-      "main": [
-        []
-      ]
-    },
     "Format FDA Data": {
       "main": [
         [
@@ -974,16 +948,20 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
-    "availableInMCP": false
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": -1
   },
-  "versionId": "2f8f8da7-f8ed-400e-82ae-385fa5678afb",
+  "versionId": "34477425-88e9-4d55-a36c-60164ca04175",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "34eec4fedaf41d770a66bfd96efb7bfe88c5bb939c12547cf6f971011ff84692"
+    "instanceId": "f5afedc3bc65306c9471fa25da53754ccb0df5c6420f2e953f7bfc13791bc7df"
   },
-  "id": "2q11eSOXzcIkgkwp",
+  "id": "MwsGZgvBRYxzQQSV",
   "tags": []
 }
