@@ -555,12 +555,12 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "c4e3e139-affc-40e5-a550-11c1b30540fe",
+        "path": "fda",
         "responseMode": "responseNode",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
+      "typeVersion": 2,
       "position": [
         -576,
         -544

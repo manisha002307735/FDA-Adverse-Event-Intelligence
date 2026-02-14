@@ -50,7 +50,7 @@ st.markdown("""
 # Config
 # Default URL (can be overridden in UI)
 DEFAULT_N8N_URL = "http://localhost:5678"
-WEBHOOK_PATH = "webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
+WEBHOOK_PATH = "webhook/fda"
 
 # Session state
 if 'results' not in st.session_state:
@@ -84,11 +84,11 @@ def trigger_workflow(count):
             except json.JSONDecodeError as e:
                 return {"ok": False, "error": f"Invalid JSON: {str(e)[:100]}"}
         else:
-            return {"ok": False, "error": f"HTTP {response.status_code}"}
+            return {"ok": False, "error": f"HTTP {response.status_code}: {response.text}"}
     except requests.exceptions.Timeout:
         return {"ok": False, "error": f"Timeout after {timeout_seconds}s"}
     except requests.exceptions.ConnectionError:
-        return {"ok": False, "error": "Cannot connect to n8n"}
+        return {"ok": False, "error": f"Cannot connect to n8n at {get_n8n_url()}"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
