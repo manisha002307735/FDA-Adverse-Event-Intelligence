@@ -46,9 +46,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Config - UPDATED FOR RENDER DEPLOYMENT
+# Config - CORRECTED FOR PRODUCTION
 DEFAULT_N8N_URL = "https://fda-adverse-event-intelligence.onrender.com"
-WEBHOOK_PATH = "https://fda-adverse-event-intelligence.onrender.com/webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
+WEBHOOK_PATH = "webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
 
 # Session state
 if 'results' not in st.session_state:
@@ -60,15 +60,19 @@ if 'proc_time' not in st.session_state:
 def get_n8n_url():
     # Get URL from session state or default
     base_url = st.session_state.get('n8n_url', DEFAULT_N8N_URL).rstrip('/')
+    # Just append the webhook path
     return f"{base_url}/{WEBHOOK_PATH}"
 
 def trigger_workflow(count):
     try:
+        webhook_url = get_n8n_url()
         payload = {"record_count": count, "triggered_by": "streamlit"}
         timeout_seconds = max(300, count * 3)
         
+        st.write(f"🔗 Calling: {webhook_url}")  # Debug line
+        
         response = requests.post(
-            get_n8n_url(),
+            webhook_url,
             json=payload,
             headers={"Content-Type": "application/json"},
             timeout=timeout_seconds
@@ -82,11 +86,11 @@ def trigger_workflow(count):
             except json.JSONDecodeError as e:
                 return {"ok": False, "error": f"Invalid JSON: {str(e)[:100]}"}
         else:
-            return {"ok": False, "error": f"HTTP {response.status_code}: {response.text}"}
+            return {"ok": False, "error": f"HTTP {response.status_code}: {response.text[:200]}"}
     except requests.exceptions.Timeout:
         return {"ok": False, "error": f"Timeout after {timeout_seconds}s"}
     except requests.exceptions.ConnectionError:
-        return {"ok": False, "error": f"Cannot connect to n8n at {get_n8n_url()}"}
+        return {"ok": False, "error": f"Cannot connect to n8n at {webhook_url}"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -142,7 +146,7 @@ with st.sidebar:
         requests.get(f"{base_url}/healthz", timeout=5)
         st.success("✅ n8n Online")
     except:
-        st.warning("⚠️ n8n may be sleeping (Render free tier)")
+        st.warning("⚠️ n8n may be sleeping")
         st.caption("It will wake up when you start analysis")
     
     st.markdown("---")
@@ -154,9 +158,9 @@ with st.sidebar:
         "Number of Records",
         min_value=1,
         max_value=100,
-        value=30,
+        value=10,
         step=1,
-        help="Recommended: 30 for testing, 50+ for full analysis"
+        help="Recommended: 10 for testing, 30+ for full analysis"
     )
     
     # Validation
@@ -179,7 +183,7 @@ with st.sidebar:
     st.markdown("---")
     
     # Instructions
-    st.info("ℹ️ **Note:** First analysis may take 30-60s as n8n wakes up (Render free tier)")
+    st.info("ℹ️ **Note:** First analysis may take 30-60s to process")
     
     # Buttons
     if st.button("🚀 Start Analysis", type="primary", use_container_width=True):
@@ -200,7 +204,7 @@ if 'analyzing' in st.session_state and st.session_state.analyzing and st.session
     prog = st.progress(0)
     status = st.empty()
     
-    status.text("📡 Waking up n8n (may take 30-60s)...")
+    status.text("📡 Connecting to n8n...")
     prog.progress(10)
     
     with st.expander("📤 Request Details"):
@@ -244,9 +248,9 @@ if 'analyzing' in st.session_state and st.session_state.analyzing and st.session
         st.error(f"❌ {result['error']}")
         
         st.write("**Troubleshooting:**")
-        st.write("1. Make sure your n8n workflow is activated")
+        st.write("1. Make sure your n8n workflow is **published** (not just activated)")
         st.write("2. Check that the webhook URL is correct")
-        st.write("3. Wait 60s and try again (n8n may be waking up)")
+        st.write("3. Try with fewer records (5-10)")
 
 elif st.session_state.results is not None:
     df = st.session_state.results
@@ -652,8 +656,8 @@ else:
     
     **Ready to Use:**
     1. Click "Start Analysis" in the sidebar
-    2. First run may take 30-60s (n8n waking up on Render free tier)
-    3. View results with interactive visualizations
+    2. View results with interactive visualizations
+    3. Download reports in multiple formats
     
     ### 📊 What You Get
     - Multi-source data (CADEC + FDA + PubMed)
