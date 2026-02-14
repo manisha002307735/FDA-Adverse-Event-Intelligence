@@ -46,11 +46,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Config
-# Config
-# Default URL (can be overridden in UI)
-DEFAULT_N8N_URL = "http://localhost:5678"
-WEBHOOK_PATH = "webhook/fda"
+# Config - UPDATED FOR RENDER DEPLOYMENT
+DEFAULT_N8N_URL = "https://fda-adverse-event-intelligence.onrender.com"
+WEBHOOK_PATH = "webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
 
 # Session state
 if 'results' not in st.session_state:
@@ -135,18 +133,17 @@ with st.sidebar:
         "n8n Base URL",
         value=DEFAULT_N8N_URL,
         key="n8n_url",
-        help="Enter your ngrok URL here (e.g., https://xxxx.ngrok-free.app)"
+        help="Your n8n deployment URL"
     )
     
     # Connection Check
     try:
-        # Check health of base URL
         base_url = n8n_url.rstrip('/')
-        requests.get(f"{base_url}/healthz", timeout=2)
+        requests.get(f"{base_url}/healthz", timeout=5)
         st.success("✅ n8n Online")
     except:
-        st.error("❌ n8n Offline")
-        st.caption(f"Cannot reach {n8n_url}")
+        st.warning("⚠️ n8n may be sleeping (Render free tier)")
+        st.caption("It will wake up when you start analysis")
     
     st.markdown("---")
     
@@ -182,7 +179,7 @@ with st.sidebar:
     st.markdown("---")
     
     # Instructions
-    st.warning("⚠️ **Setup:**\n\n1. n8n editor\n2. Click 'Execute Workflow'\n3. Wait for 'Waiting...'\n4. Then Start Analysis")
+    st.info("ℹ️ **Note:** First analysis may take 30-60s as n8n wakes up (Render free tier)")
     
     # Buttons
     if st.button("🚀 Start Analysis", type="primary", use_container_width=True):
@@ -203,10 +200,10 @@ if 'analyzing' in st.session_state and st.session_state.analyzing and st.session
     prog = st.progress(0)
     status = st.empty()
     
-    status.text("📡 Sending to n8n...")
+    status.text("📡 Waking up n8n (may take 30-60s)...")
     prog.progress(10)
     
-    with st.expander("📤 Request"):
+    with st.expander("📤 Request Details"):
         st.code(f"POST {get_n8n_url()}")
         st.json({"record_count": records})
     
@@ -247,9 +244,9 @@ if 'analyzing' in st.session_state and st.session_state.analyzing and st.session
         st.error(f"❌ {result['error']}")
         
         st.write("**Troubleshooting:**")
-        st.write("1. Click 'Execute Workflow' in n8n")
-        st.write("2. Wait for 'Waiting for Test URL'")
-        st.write("3. Try again immediately")
+        st.write("1. Make sure your n8n workflow is activated")
+        st.write("2. Check that the webhook URL is correct")
+        st.write("3. Wait 60s and try again (n8n may be waking up)")
 
 elif st.session_state.results is not None:
     df = st.session_state.results
@@ -265,44 +262,43 @@ elif st.session_state.results is not None:
         fda_count = sum(1 for s in df['source'] if 'fda' in str(s).lower() or 'medwatch' in str(s).lower())
         pubmed_count = sum(1 for s in df['source'] if s == 'pubmed')
         
-        # Use simpler, working format
         st.markdown("## 📊 Multi-Source Intelligence Complete")
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.markdown("""
+            st.markdown(f"""
             <div style='background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%); 
                         padding: 20px; border-radius: 12px; color: white; text-align: center;'>
                 <h3 style='margin: 0; color: white;'>📊 CADEC</h3>
-                <div style='font-size: 3em; font-weight: 700; margin: 10px 0;'>{}</div>
+                <div style='font-size: 3em; font-weight: 700; margin: 10px 0;'>{cadec_count}</div>
                 <p style='margin: 0; opacity: 0.9;'>Patient Reports</p>
             </div>
-            """.format(cadec_count), unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
         
         with col2:
-            st.markdown("""
+            st.markdown(f"""
             <div style='background: linear-gradient(135deg, #ec407a 0%, #c2185b 100%); 
                         padding: 20px; border-radius: 12px; color: white; text-align: center;'>
                 <h3 style='margin: 0; color: white;'>🏛️ FDA</h3>
-                <div style='font-size: 3em; font-weight: 700; margin: 10px 0;'>{}</div>
+                <div style='font-size: 3em; font-weight: 700; margin: 10px 0;'>{fda_count}</div>
                 <p style='margin: 0; opacity: 0.9;'>Safety Alerts</p>
             </div>
-            """.format(fda_count), unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
         
         with col3:
-            st.markdown("""
+            st.markdown(f"""
             <div style='background: linear-gradient(135deg, #ab47bc 0%, #7b1fa2 100%); 
                         padding: 20px; border-radius: 12px; color: white; text-align: center;'>
                 <h3 style='margin: 0; color: white;'>📚 PubMed</h3>
-                <div style='font-size: 3em; font-weight: 700; margin: 10px 0;'>{}</div>
+                <div style='font-size: 3em; font-weight: 700; margin: 10px 0;'>{pubmed_count}</div>
                 <p style='margin: 0; opacity: 0.9;'>Research Articles</p>
             </div>
-            """.format(pubmed_count), unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
         
         st.success(f"✅ **Total: {len(df)} records** from 3 authoritative sources")
     
-    # Email
+    # Email notification
     st.markdown(f"""
     <div class="success-box">
     📧 <strong>Email Sent to manishasahu2055@gmail.com</strong><br>
@@ -654,11 +650,10 @@ else:
     st.markdown("""
     ### 🎯 Quick Start
     
-    **Setup (one time):**
-    1. Open n8n editor (localhost:5678)
-    2. Click "Execute Workflow" button
-    3. Wait for "Waiting for you to call the Test URL"
-    4. Come back here and click "Start Analysis"
+    **Ready to Use:**
+    1. Click "Start Analysis" in the sidebar
+    2. First run may take 30-60s (n8n waking up on Render free tier)
+    3. View results with interactive visualizations
     
     ### 📊 What You Get
     - Multi-source data (CADEC + FDA + PubMed)
