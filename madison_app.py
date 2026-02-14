@@ -48,7 +48,7 @@ st.markdown("""
 
 # Config - UPDATED FOR RENDER DEPLOYMENT
 DEFAULT_N8N_URL = "https://fda-adverse-event-intelligence.onrender.com"
-WEBHOOK_PATH = "webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
+WEBHOOK_PATH = "webhook-test/c4e3e139-affc-40e5-a550-11c1b30540fe"
 
 # Session state
 if 'results' not in st.session_state:
