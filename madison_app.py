@@ -47,7 +47,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Config
-N8N_WEBHOOK_URL = "https://fda-adverse-event-intelligence.onrender.com/webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
+# Config
+# Default URL (can be overridden in UI)
+DEFAULT_N8N_URL = "http://localhost:5678"
+WEBHOOK_PATH = "webhook-test/c4e3e139-affc-40e5-a550-11c1b30540fe"
 
 # Session state
 if 'results' not in st.session_state:
@@ -56,13 +59,18 @@ if 'proc_time' not in st.session_state:
     st.session_state.proc_time = 0
 
 # Functions
+def get_n8n_url():
+    # Get URL from session state or default
+    base_url = st.session_state.get('n8n_url', DEFAULT_N8N_URL).rstrip('/')
+    return f"{base_url}/{WEBHOOK_PATH}"
+
 def trigger_workflow(count):
     try:
         payload = {"record_count": count, "triggered_by": "streamlit"}
         timeout_seconds = max(300, count * 3)
         
         response = requests.post(
-            N8N_WEBHOOK_URL,
+            get_n8n_url(),
             json=payload,
             headers={"Content-Type": "application/json"},
             timeout=timeout_seconds
@@ -120,12 +128,25 @@ st.markdown("---")
 with st.sidebar:
     st.header("⚙️ Settings")
     
-    # Connection
+    # Connection Settings
+    st.subheader("🔌 Connection")
+    
+    n8n_url = st.text_input(
+        "n8n Base URL",
+        value=DEFAULT_N8N_URL,
+        key="n8n_url",
+        help="Enter your ngrok URL here (e.g., https://xxxx.ngrok-free.app)"
+    )
+    
+    # Connection Check
     try:
-        requests.get("http://localhost:5678/healthz", timeout=2)
+        # Check health of base URL
+        base_url = n8n_url.rstrip('/')
+        requests.get(f"{base_url}/healthz", timeout=2)
         st.success("✅ n8n Online")
     except:
         st.error("❌ n8n Offline")
+        st.caption(f"Cannot reach {n8n_url}")
     
     st.markdown("---")
     
@@ -186,7 +207,7 @@ if 'analyzing' in st.session_state and st.session_state.analyzing and st.session
     prog.progress(10)
     
     with st.expander("📤 Request"):
-        st.code(f"POST {N8N_WEBHOOK_URL}")
+        st.code(f"POST {get_n8n_url()}")
         st.json({"record_count": records})
     
     start = time.time()
