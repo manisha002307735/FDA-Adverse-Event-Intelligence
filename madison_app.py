@@ -46,8 +46,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Config - CORRECTED FOR PRODUCTION
-DEFAULT_N8N_URL = "https://fda-adverse-event-intelligence.onrender.com"
+# n8n must be a running instance (Blueprint: fda-n8n-workflow on Render)
+DEFAULT_N8N_URL = "https://fda-n8n-workflow.onrender.com"
 WEBHOOK_PATH = "webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
 
 # Session state
@@ -84,7 +84,14 @@ def trigger_workflow(count):
             except json.JSONDecodeError as e:
                 return {"ok": False, "error": f"Invalid JSON: {str(e)[:100]}"}
         else:
-            return {"ok": False, "error": f"HTTP {response.status_code}: {response.text[:200]}"}
+            err_snip = response.text[:300]
+            if response.status_code == 503 and "Service Suspended" in response.text:
+                err_snip = (
+                    "n8n host returned 503 (suspended or down). "
+                    "In the sidebar, set n8n Base URL to your live n8n "
+                    "(e.g. https://fda-n8n-workflow.onrender.com) and ensure the workflow is published."
+                )
+            return {"ok": False, "error": f"HTTP {response.status_code}: {err_snip}"}
     except requests.exceptions.Timeout:
         return {"ok": False, "error": f"Timeout after {timeout_seconds}s"}
     except requests.exceptions.ConnectionError:
