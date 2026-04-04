@@ -1,0 +1,14 @@
+FROM python:3.12-slim-bookworm
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY madison_app.py .
+COPY .streamlit/config.toml .streamlit/config.toml
+
+ENV PYTHONUNBUFFERED=1
+
+# Render sets PORT; Streamlit must bind 0.0.0.0 for public access
+CMD sh -c "exec streamlit run madison_app.py --server.port=${PORT} --server.address=0.0.0.0 --server.headless=true"

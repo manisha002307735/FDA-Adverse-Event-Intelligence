@@ -15,3 +15,10 @@ services:
         value: 5678
       - key: WEBHOOK_URL
         sync: false
+
+  # Public Streamlit UI (use while streamlit.app is unavailable)
+  - type: web
+    name: fda-adverse-event-ui
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.streamlit
