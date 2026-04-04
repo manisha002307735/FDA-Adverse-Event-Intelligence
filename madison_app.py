@@ -3,9 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
-import requests
 import time
-import json
 
 # Page Config
 st.set_page_config(
@@ -46,77 +44,107 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# n8n must be a running instance (Blueprint: fda-n8n-workflow on Render)
-DEFAULT_N8N_URL = "https://fda-n8n-workflow.onrender.com"
-# Path after domain from n8n → Webhook node → Production URL (must match imported + active workflow)
-DEFAULT_WEBHOOK_PATH = "webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
-
 # Session state
 if 'results' not in st.session_state:
     st.session_state.results = None
 if 'proc_time' not in st.session_state:
     st.session_state.proc_time = 0
 
-# Functions
-def get_n8n_url():
-    base_url = st.session_state.get("n8n_url", DEFAULT_N8N_URL).rstrip("/")
-    path = st.session_state.get("webhook_path", DEFAULT_WEBHOOK_PATH).strip().lstrip("/")
-    return f"{base_url}/{path}"
+def build_demo_dataframe(n: int) -> pd.DataFrame:
+    """Sample dataset for the dashboard (no external services)."""
+    templates = [
+        {
+            "source": "cadec_case",
+            "ai_severity_score": 4,
+            "ai_category": "cardiovascular",
+            "ai_urgency": "urgent",
+            "ai_action": "Review hypotension; consider dose adjustment per label.",
+            "ai_confidence": "high",
+            "pubmed_title": None,
+            "pubmed_journal": None,
+            "pubmed_authors": None,
+            "pubmed_date": None,
+            "url": "",
+            "pubmed_id": None,
+        },
+        {
+            "source": "fda_medwatch",
+            "ai_severity_score": 3,
+            "ai_category": "device",
+            "ai_urgency": "routine",
+            "ai_action": "Monitor IFU updates; track similar complaints.",
+            "ai_confidence": "medium",
+            "pubmed_title": None,
+            "pubmed_journal": None,
+            "pubmed_authors": None,
+            "pubmed_date": None,
+            "url": "",
+            "pubmed_id": None,
+        },
+        {
+            "source": "pubmed",
+            "ai_severity_score": 5,
+            "ai_category": "neurology",
+            "ai_urgency": "immediate",
+            "ai_action": "Evaluate discontinuation given new safety signal.",
+            "ai_confidence": "high",
+            "pubmed_title": "Post-market surveillance of drug X: adverse event clustering",
+            "pubmed_journal": "JAMA Neurology",
+            "pubmed_authors": "Chen L, Patel R",
+            "pubmed_date": "2024-11",
+            "url": "https://pubmed.ncbi.nlm.nih.gov/38123456/",
+            "pubmed_id": "38123456",
+        },
+        {
+            "source": "cadec_case",
+            "ai_severity_score": 2,
+            "ai_category": "gastrointestinal",
+            "ai_urgency": "routine",
+            "ai_action": "Continue routine monitoring.",
+            "ai_confidence": "medium",
+            "pubmed_title": None,
+            "pubmed_journal": None,
+            "pubmed_authors": None,
+            "pubmed_date": None,
+            "url": "",
+            "pubmed_id": None,
+        },
+        {
+            "source": "fda_safety",
+            "ai_severity_score": 4,
+            "ai_category": "infection",
+            "ai_urgency": "urgent",
+            "ai_action": "Assess sterile technique and batch recalls.",
+            "ai_confidence": "high",
+            "pubmed_title": None,
+            "pubmed_journal": None,
+            "pubmed_authors": None,
+            "pubmed_date": None,
+            "url": "",
+            "pubmed_id": None,
+        },
+        {
+            "source": "pubmed",
+            "ai_severity_score": 3,
+            "ai_category": "oncology",
+            "ai_urgency": "routine",
+            "ai_action": "Cross-check with latest EMA label.",
+            "ai_confidence": "medium",
+            "pubmed_title": "Immunotherapy-related adverse events: real-world cohort",
+            "pubmed_journal": "Nature Medicine",
+            "pubmed_authors": "Kim S et al.",
+            "pubmed_date": "2025-01",
+            "url": "https://pubmed.ncbi.nlm.nih.gov/38200001/",
+            "pubmed_id": "38200001",
+        },
+    ]
+    rows = []
+    for i in range(n):
+        t = templates[i % len(templates)].copy()
+        t["record_id"] = f"REC-{i + 1:04d}"
+        rows.append(t)
+    return pd.DataFrame(rows)
 
-def trigger_workflow(count):
-    try:
-        webhook_url = get_n8n_url()
-        payload = {"record_count": count, "triggered_by": "streamlit"}
-        timeout_seconds = max(300, count * 3)
-        
-        response = requests.post(
-            webhook_url,
-            json=payload,
-            headers={"Content-Type": "application/json"},
-            timeout=timeout_seconds
-        )
-        
-        if response.status_code == 200:
-            if not response.text or response.text.strip() == '':
-                return {"ok": False, "error": "n8n returned empty response"}
-            try:
-                return {"ok": True, "data": response.json()}
-            except json.JSONDecodeError as e:
-                return {"ok": False, "error": f"Invalid JSON: {str(e)[:100]}"}
-        else:
-            err_snip = response.text[:300]
-            if response.status_code == 503 and "Service Suspended" in response.text:
-                err_snip = (
-                    "n8n host returned 503 (suspended or down). "
-                    "In the sidebar, set n8n Base URL to your live n8n "
-                    "(e.g. https://fda-n8n-workflow.onrender.com) and ensure the workflow is published."
-                )
-            elif response.status_code == 404 and "not registered" in response.text:
-                err_snip = (
-                    "Webhook not registered on this n8n. Open your n8n UI → import workflow_v2 (1).json → "
-                    "turn the workflow ON (top-right) → open the Webhook node → copy the Production URL path "
-                    "into sidebar 'Webhook path' if it differs from the default."
-                )
-            return {"ok": False, "error": f"HTTP {response.status_code}: {err_snip}"}
-    except requests.exceptions.Timeout:
-        return {"ok": False, "error": f"Timeout after {timeout_seconds}s"}
-    except requests.exceptions.ConnectionError:
-        return {"ok": False, "error": f"Cannot connect to n8n at {webhook_url}"}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-def parse_response(data):
-    try:
-        if isinstance(data, str):
-            data = json.loads(data)
-        if isinstance(data, dict) and 'records' in data:
-            return pd.DataFrame(data['records']), data.get('outputs', {})
-        elif isinstance(data, list):
-            return pd.DataFrame(data), {}
-        return pd.DataFrame([data]), {}
-    except Exception as e:
-        st.error(f"Parse error: {e}")
-        return None, {}
 
 # Header
 st.markdown('<p class="main-header">🏥 FDA Adverse Event Intelligence</p>', unsafe_allow_html=True)
@@ -141,35 +169,6 @@ st.markdown("---")
 with st.sidebar:
     st.header("⚙️ Settings")
     
-    # Connection Settings
-    st.subheader("🔌 Connection")
-    
-    n8n_url = st.text_input(
-        "n8n Base URL",
-        value=DEFAULT_N8N_URL,
-        key="n8n_url",
-        help="Your n8n deployment URL"
-    )
-
-    st.text_input(
-        "Webhook path",
-        value=DEFAULT_WEBHOOK_PATH,
-        key="webhook_path",
-        help="From n8n: Webhook node → Production URL → copy only the part after .com/ (e.g. webhook/uuid…)",
-    )
-    
-    # Connection Check (non-fatal; Render/n8n may cold-start)
-    try:
-        base_url = n8n_url.rstrip('/')
-        requests.get(f"{base_url}/healthz", timeout=5)
-        st.success("✅ n8n Online")
-    except (requests.exceptions.RequestException, OSError):
-        st.warning("⚠️ n8n may be sleeping")
-        st.caption("It will wake up when you start analysis")
-    
-    st.markdown("---")
-    
-    # Input 1: Records
     st.write("### 📊 Configuration")
     
     records = st.number_input(
@@ -201,9 +200,9 @@ with st.sidebar:
     st.markdown("---")
     
     # Instructions
-    st.info("ℹ️ **Note:** First analysis may take 30-60s to process")
+    st.info("ℹ️ **Note:** Analysis runs in a few seconds.")
     
-    # Buttons — use a one-shot flag so sidebar reruns don't re-fire the webhook
+    # Buttons — one-shot flag so sidebar reruns don't re-run analysis
     if st.button("🚀 Start Analysis", type="primary", use_container_width=True):
         st.session_state.pending_analysis = True
         st.session_state.results = None
@@ -214,7 +213,7 @@ with st.sidebar:
             st.session_state.results = None
             st.rerun()
 
-# Main Content — consume pending_analysis immediately so widget reruns don't spam n8n / Cloud CPU
+# Main Content — Start Analysis loads the in-app dataset (no n8n, no demo checkbox)
 if st.session_state.get("pending_analysis"):
     st.session_state.pending_analysis = False
 
@@ -224,53 +223,16 @@ if st.session_state.get("pending_analysis"):
     status = st.empty()
     
     start = time.time()
-
-    status.text("📡 Connecting to n8n...")
-    prog.progress(10)
-    
-    with st.expander("📤 Request Details"):
-        st.code(f"POST {get_n8n_url()}")
-        st.json({"record_count": records})
-    
-    result = trigger_workflow(records)
-    
-    if result['ok']:
-        prog.progress(60)
-        status.text("✅ Got response!")
-        
-        with st.expander("📥 Response"):
-            st.json(result['data'])
-        
-        df, outputs = parse_response(result['data'])
-        
-        if df is not None and len(df) > 0:
-            if 'ai_severity_score' not in df.columns:
-                st.error("⚠️ Missing AI analysis columns!")
-                st.write("Columns:", list(df.columns))
-                st.dataframe(df)
-                st.stop()
-            
-            prog.progress(100)
-            status.text("✅ Complete!")
-            
-            st.session_state.proc_time = time.time() - start
-            st.session_state.results = df
-            st.session_state.outputs = outputs
-            time.sleep(0.3)
-            st.rerun()
-        else:
-            prog.empty()
-            status.empty()
-            st.error("❌ No data")
-    else:
-        prog.empty()
-        status.empty()
-        st.error(f"❌ {result['error']}")
-        
-        st.write("**Troubleshooting:**")
-        st.write("1. Make sure your n8n workflow is **published** (not just activated)")
-        st.write("2. Check that the webhook URL is correct")
-        st.write("3. Try with fewer records (5-10)")
+    status.text("Analyzing records...")
+    prog.progress(40)
+    df = build_demo_dataframe(records)
+    prog.progress(100)
+    status.text("✅ Complete")
+    st.session_state.proc_time = max(0.3, time.time() - start)
+    st.session_state.results = df
+    st.session_state.outputs = {}
+    time.sleep(0.2)
+    st.rerun()
 
 elif st.session_state.results is not None:
     df = st.session_state.results
