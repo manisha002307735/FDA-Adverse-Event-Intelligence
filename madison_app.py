@@ -666,4 +666,7 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("FDA Adverse Event Intelligence | n8n + GPT-4O + Streamlit | Manisha Sahu | Assignment 5")
+st.caption(
+    "FDA Adverse Event Intelligence | Manisha Sahu | Assignment 5 · "
+    "UI build: in-app sample data only (no n8n webhook HTTP calls)"
+)
