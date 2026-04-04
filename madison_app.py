@@ -48,7 +48,8 @@ st.markdown("""
 
 # n8n must be a running instance (Blueprint: fda-n8n-workflow on Render)
 DEFAULT_N8N_URL = "https://fda-n8n-workflow.onrender.com"
-WEBHOOK_PATH = "webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
+# Path after domain from n8n → Webhook node → Production URL (must match imported + active workflow)
+DEFAULT_WEBHOOK_PATH = "webhook/c4e3e139-affc-40e5-a550-11c1b30540fe"
 
 # Session state
 if 'results' not in st.session_state:
@@ -58,10 +59,9 @@ if 'proc_time' not in st.session_state:
 
 # Functions
 def get_n8n_url():
-    # Get URL from session state or default
-    base_url = st.session_state.get('n8n_url', DEFAULT_N8N_URL).rstrip('/')
-    # Just append the webhook path
-    return f"{base_url}/{WEBHOOK_PATH}"
+    base_url = st.session_state.get("n8n_url", DEFAULT_N8N_URL).rstrip("/")
+    path = st.session_state.get("webhook_path", DEFAULT_WEBHOOK_PATH).strip().lstrip("/")
+    return f"{base_url}/{path}"
 
 def trigger_workflow(count):
     try:
@@ -90,6 +90,12 @@ def trigger_workflow(count):
                     "n8n host returned 503 (suspended or down). "
                     "In the sidebar, set n8n Base URL to your live n8n "
                     "(e.g. https://fda-n8n-workflow.onrender.com) and ensure the workflow is published."
+                )
+            elif response.status_code == 404 and "not registered" in response.text:
+                err_snip = (
+                    "Webhook not registered on this n8n. Open your n8n UI → import workflow_v2 (1).json → "
+                    "turn the workflow ON (top-right) → open the Webhook node → copy the Production URL path "
+                    "into sidebar 'Webhook path' if it differs from the default."
                 )
             return {"ok": False, "error": f"HTTP {response.status_code}: {err_snip}"}
     except requests.exceptions.Timeout:
@@ -143,6 +149,13 @@ with st.sidebar:
         value=DEFAULT_N8N_URL,
         key="n8n_url",
         help="Your n8n deployment URL"
+    )
+
+    st.text_input(
+        "Webhook path",
+        value=DEFAULT_WEBHOOK_PATH,
+        key="webhook_path",
+        help="From n8n: Webhook node → Production URL → copy only the part after .com/ (e.g. webhook/uuid…)",
     )
     
     # Connection Check (non-fatal; Render/n8n may cold-start)
