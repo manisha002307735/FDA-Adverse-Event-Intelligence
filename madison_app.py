@@ -118,103 +118,6 @@ def parse_response(data):
         st.error(f"Parse error: {e}")
         return None, {}
 
-
-def build_demo_dataframe(n: int) -> pd.DataFrame:
-    """Sample FDA-style rows — no n8n/OpenAI (works on Streamlit Cloud like a self-contained RSS app)."""
-    templates = [
-        {
-            "source": "cadec_case",
-            "ai_severity_score": 4,
-            "ai_category": "cardiovascular",
-            "ai_urgency": "urgent",
-            "ai_action": "Review hypotension; consider dose adjustment per label.",
-            "ai_confidence": "high",
-            "pubmed_title": None,
-            "pubmed_journal": None,
-            "pubmed_authors": None,
-            "pubmed_date": None,
-            "url": "",
-            "pubmed_id": None,
-        },
-        {
-            "source": "fda_medwatch",
-            "ai_severity_score": 3,
-            "ai_category": "device",
-            "ai_urgency": "routine",
-            "ai_action": "Monitor IFU updates; track similar complaints.",
-            "ai_confidence": "medium",
-            "pubmed_title": None,
-            "pubmed_journal": None,
-            "pubmed_authors": None,
-            "pubmed_date": None,
-            "url": "",
-            "pubmed_id": None,
-        },
-        {
-            "source": "pubmed",
-            "ai_severity_score": 5,
-            "ai_category": "neurology",
-            "ai_urgency": "immediate",
-            "ai_action": "Evaluate discontinuation given new safety signal.",
-            "ai_confidence": "high",
-            "pubmed_title": "Post-market surveillance of drug X: adverse event clustering",
-            "pubmed_journal": "JAMA Neurology",
-            "pubmed_authors": "Chen L, Patel R",
-            "pubmed_date": "2024-11",
-            "url": "https://pubmed.ncbi.nlm.nih.gov/38123456/",
-            "pubmed_id": "38123456",
-        },
-        {
-            "source": "cadec_case",
-            "ai_severity_score": 2,
-            "ai_category": "gastrointestinal",
-            "ai_urgency": "routine",
-            "ai_action": "Continue routine monitoring.",
-            "ai_confidence": "medium",
-            "pubmed_title": None,
-            "pubmed_journal": None,
-            "pubmed_authors": None,
-            "pubmed_date": None,
-            "url": "",
-            "pubmed_id": None,
-        },
-        {
-            "source": "fda_safety",
-            "ai_severity_score": 4,
-            "ai_category": "infection",
-            "ai_urgency": "urgent",
-            "ai_action": "Assess sterile technique and batch recalls.",
-            "ai_confidence": "high",
-            "pubmed_title": None,
-            "pubmed_journal": None,
-            "pubmed_authors": None,
-            "pubmed_date": None,
-            "url": "",
-            "pubmed_id": None,
-        },
-        {
-            "source": "pubmed",
-            "ai_severity_score": 3,
-            "ai_category": "oncology",
-            "ai_urgency": "routine",
-            "ai_action": "Cross-check with latest EMA label.",
-            "ai_confidence": "medium",
-            "pubmed_title": "Immunotherapy-related adverse events: real-world cohort",
-            "pubmed_journal": "Nature Medicine",
-            "pubmed_authors": "Kim S et al.",
-            "pubmed_date": "2025-01",
-            "url": "https://pubmed.ncbi.nlm.nih.gov/38200001/",
-            "pubmed_id": "38200001",
-        },
-    ]
-    rows = []
-    for i in range(n):
-        t = templates[i % len(templates)].copy()
-        t["record_id"] = f"DEMO-{i + 1:04d}"
-        rows.append(t)
-    return pd.DataFrame(rows)
-
-
 # Header
 st.markdown('<p class="main-header">🏥 FDA Adverse Event Intelligence</p>', unsafe_allow_html=True)
 st.markdown("**AI-Powered Patient Safety Monitoring**")
@@ -254,25 +157,15 @@ with st.sidebar:
         key="webhook_path",
         help="From n8n: Webhook node → Production URL → copy only the part after .com/ (e.g. webhook/uuid…)",
     )
-
-    st.checkbox(
-        "Demo mode (no n8n — self-contained)",
-        value=False,
-        key="demo_mode",
-        help="Uses built-in sample records only. Best for Streamlit Cloud when your friend’s-style app works but webhooks do not.",
-    )
     
-    # Connection Check (skip in demo — same idea as RSS-only apps that never call a backend)
-    if not st.session_state.get("demo_mode"):
-        try:
-            base_url = n8n_url.rstrip('/')
-            requests.get(f"{base_url}/healthz", timeout=5)
-            st.success("✅ n8n Online")
-        except (requests.exceptions.RequestException, OSError):
-            st.warning("⚠️ n8n may be sleeping")
-            st.caption("It will wake up when you start analysis")
-    else:
-        st.info("Demo mode: no n8n calls.")
+    # Connection Check (non-fatal; Render/n8n may cold-start)
+    try:
+        base_url = n8n_url.rstrip('/')
+        requests.get(f"{base_url}/healthz", timeout=5)
+        st.success("✅ n8n Online")
+    except (requests.exceptions.RequestException, OSError):
+        st.warning("⚠️ n8n may be sleeping")
+        st.caption("It will wake up when you start analysis")
     
     st.markdown("---")
     
@@ -331,18 +224,6 @@ if st.session_state.get("pending_analysis"):
     status = st.empty()
     
     start = time.time()
-
-    if st.session_state.get("demo_mode"):
-        status.text("Loading demo data (no webhook — same idea as an all-in-one Streamlit app)...")
-        prog.progress(30)
-        df = build_demo_dataframe(records)
-        prog.progress(100)
-        status.text("✅ Demo data ready")
-        st.session_state.proc_time = max(0.5, time.time() - start)
-        st.session_state.results = df
-        st.session_state.outputs = {}
-        time.sleep(0.2)
-        st.rerun()
 
     status.text("📡 Connecting to n8n...")
     prog.progress(10)
