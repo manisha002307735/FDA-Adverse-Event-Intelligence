@@ -69,8 +69,6 @@ def trigger_workflow(count):
         payload = {"record_count": count, "triggered_by": "streamlit"}
         timeout_seconds = max(300, count * 3)
         
-        st.write(f"🔗 Calling: {webhook_url}")  # Debug line
-        
         response = requests.post(
             webhook_url,
             json=payload,
@@ -140,12 +138,12 @@ with st.sidebar:
         help="Your n8n deployment URL"
     )
     
-    # Connection Check
+    # Connection Check (non-fatal; Render/n8n may cold-start)
     try:
         base_url = n8n_url.rstrip('/')
         requests.get(f"{base_url}/healthz", timeout=5)
         st.success("✅ n8n Online")
-    except:
+    except (requests.exceptions.RequestException, OSError):
         st.warning("⚠️ n8n may be sleeping")
         st.caption("It will wake up when you start analysis")
     
@@ -185,9 +183,9 @@ with st.sidebar:
     # Instructions
     st.info("ℹ️ **Note:** First analysis may take 30-60s to process")
     
-    # Buttons
+    # Buttons — use a one-shot flag so sidebar reruns don't re-fire the webhook
     if st.button("🚀 Start Analysis", type="primary", use_container_width=True):
-        st.session_state.analyzing = True
+        st.session_state.pending_analysis = True
         st.session_state.results = None
         st.rerun()
     
@@ -196,9 +194,10 @@ with st.sidebar:
             st.session_state.results = None
             st.rerun()
 
-# Main Content
-if 'analyzing' in st.session_state and st.session_state.analyzing and st.session_state.results is None:
-    
+# Main Content — consume pending_analysis immediately so widget reruns don't spam n8n / Cloud CPU
+if st.session_state.get("pending_analysis"):
+    st.session_state.pending_analysis = False
+
     st.write("## 🔄 Processing...")
     
     prog = st.progress(0)
@@ -256,7 +255,8 @@ elif st.session_state.results is not None:
     df = st.session_state.results
     outputs = st.session_state.get('outputs', {})
     per_rec = st.session_state.proc_time / len(df) if len(df) > 0 else 0
-    
+    cadec_count = fda_count = pubmed_count = 0
+
     # SUCCESS
     st.success(f"✅ Analyzed {len(df)} records in {st.session_state.proc_time:.1f}s")
     

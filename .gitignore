@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
-.streamlit/
+# Keep .streamlit/config.toml for Cloud; never commit secrets
+.streamlit/secrets.toml
 .DS_Store
 venv/

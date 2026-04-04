@@ -1,0 +1,6 @@
+# Streamlit Community Cloud / local server defaults
+[server]
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
